@@ -65,16 +65,19 @@ class MCPServerManager:
     def __init__(
         self, config_path: Optional[str] = None, client_type: Optional[str] = None
     ):
-        if client_type and not config_path:
-            # Use default path for specified client
-            self.config_path = self.CLIENT_PATHS.get(
-                client_type.lower(), self.CLIENT_PATHS["generic"]
-            )
-            self.client_type = client_type.lower()
-        elif config_path:
+        # Priority: 1) explicit config_path, 2) explicit client_type, 3) auto-detect
+        if config_path:
+            # User specified exact path
             self.config_path = Path(config_path)
             self.client_type = self._detect_client_type()
+        elif client_type:
+            # User specified which client to use - ignore any existing configs
+            self.client_type = client_type.lower()
+            self.config_path = self.CLIENT_PATHS.get(
+                self.client_type, self.CLIENT_PATHS["generic"]
+            )
         else:
+            # Auto-detect from existing configs
             self.config_path = self._find_config()
             self.client_type = self._detect_client_type()
         self.config = self._load_config()
@@ -219,7 +222,7 @@ Examples:
     parser.add_argument(
         "--client",
         choices=["cursor", "gemini", "opencode", "claude", "generic"],
-        help="Specify which MCP client to use (creates config if doesn't exist)",
+        help="Specify which MCP client to use (takes precedence over auto-detection)",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Commands")
