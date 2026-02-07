@@ -11,6 +11,26 @@ A simple CLI tool to manage Model Context Protocol (MCP) servers across multiple
 - **Generic MCP** - `~/.mcp/config.json`
 - **Custom Tools** - Register any MCP-compatible tool
 
+## Install
+
+Install globally with pip so you can use `damngood` from anywhere:
+
+```bash
+# Clone the repo
+git clone https://github.com/5LV10/damngood.git
+cd damngood
+
+# Install in editable mode (for development)
+pip install -e .
+
+# Or install normally
+pip install .
+
+# All set, damngood is ready to be used
+damngood --help
+damngood list
+```
+
 ## Quick Start
 
 ```bash
@@ -136,7 +156,7 @@ Configured MCP Servers (vscode):
   myserver             [enabled]
 ```
 
-## Install
+## Other ways to install
 
 ### Option 1: Install with pip (Recommended)
 
