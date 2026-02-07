@@ -15,22 +15,22 @@ A simple CLI tool to manage Model Context Protocol (MCP) servers across multiple
 
 ```bash
 # List servers (auto-detects client)
-python3 mcp_manager.py list
+damngood list
 
 # Add a server
-python3 mcp_manager.py add filesystem --command npx --args "-y @modelcontextprotocol/server-filesystem"
+damngood add filesystem --command npx --args "-y @modelcontextprotocol/server-filesystem"
 
 # Toggle server on/off
-python3 mcp_manager.py toggle filesystem
+damngood toggle filesystem
 
 # Remove a server
-python3 mcp_manager.py remove filesystem
+damngood remove filesystem
 ```
 
 ## Usage
 
 ```
-python3 mcp_manager.py [options] <command>
+damngood [options] <command>
 
 Commands:
   list              List all configured servers
@@ -53,13 +53,13 @@ By default, the tool auto-detects which MCP client you're using based on existin
 
 ```bash
 # Use Cursor explicitly (ignores other configs)
-python3 mcp_manager.py --client cursor list
+damngood --client cursor list
 
 # Use Gemini explicitly
-python3 mcp_manager.py --client gemini add myserver --command npx
+damngood --client gemini add myserver --command npx
 
 # Use OpenCode explicitly
-python3 mcp_manager.py --client opencode enable myserver
+damngood --client opencode enable myserver
 ```
 
 This is useful when you have multiple MCP configs but want to manage a specific one.
@@ -70,14 +70,14 @@ Want to use a tool that's not in our supported list? Register it:
 
 ```bash
 # Register a custom tool (e.g., VS Code)
-python3 mcp_manager.py register windsurf --path ~/.windsurf/mcp.json
+damngood register windsurf --path ~/.windsurf/mcp.json
 
 # Register with custom config key (like OpenCode uses 'mcp' instead of 'mcpServers')
-python3 mcp_manager.py register mytool --path ~/.mytool/config.json --key mcp
+damngood register mytool --path ~/.mytool/config.json --key mcp
 
 # Now use it like any other client
-python3 mcp_manager.py --client windsurf list
-python3 mcp_manager.py --client windsurf add myserver --command npx
+damngood --client windsurf list
+damngood --client windsurf add myserver --command npx
 ```
 
 Custom tools are saved to `~/.config/damngood/custom_tools.json` and work exactly like built-in ones.
@@ -96,7 +96,7 @@ Custom tools are saved to `~/.config/damngood/custom_tools.json` and work exactl
 ### Auto-detection workflow
 ```bash
 # Your Cursor MCP servers are acting up
-$ python3 mcp_manager.py list
+$ damngood list
 Configured MCP Servers (cursor):
 ------------------------------------------------------------
   filesystem           [enabled]
@@ -104,7 +104,7 @@ Configured MCP Servers (cursor):
   postgres             [enabled]
 
 # Disable the broken one
-$ python3 mcp_manager.py disable slack
+$ damngood disable slack
 Server 'slack' disabled
 Config saved to /home/dev/.cursor/mcp.json (cursor format)
 ```
@@ -112,13 +112,13 @@ Config saved to /home/dev/.cursor/mcp.json (cursor format)
 ### Explicit client selection
 ```bash
 # Force use of Claude even if other configs exist
-$ python3 mcp_manager.py --client claude list
+$ damngood --client claude list
 Configured MCP Servers (claude):
 ------------------------------------------------------------
 No MCP servers configured.
 
 # Add server to Claude specifically
-$ python3 mcp_manager.py --client claude add github --command npx --args "-y @modelcontextprotocol/server-github"
+$ damngood --client claude add github --command npx --args "-y @modelcontextprotocol/server-github"
 Added MCP server: github
 Config saved to /home/dev/.claude/config.json (claude format)
 ```
@@ -126,11 +126,11 @@ Config saved to /home/dev/.claude/config.json (claude format)
 ### Custom tool registration
 ```bash
 # Register VS Code as custom tool
-$ python3 mcp_manager.py register vscode --path ~/.vscode/mcp.json
+$ damngood register vscode --path ~/.vscode/mcp.json
 Registered custom tool 'vscode' -> /home/dev/.vscode/mcp.json (key: mcpServers)
 
 # Use it
-$ python3 mcp_manager.py --client vscode list
+$ damngood --client vscode list
 Configured MCP Servers (vscode):
 ------------------------------------------------------------
   myserver             [enabled]
@@ -138,10 +138,54 @@ Configured MCP Servers (vscode):
 
 ## Install
 
+### Option 1: Install with pip (Recommended)
+
+Install globally so you can use `damngood` from anywhere:
+
 ```bash
-git clone <repo>
+# Clone the repo
+git clone https://github.com/5LV10/damngood.git
 cd damngood
-python3 mcp_manager.py --help
+
+# Install in editable mode (for development)
+pip install -e .
+
+# Or install normally
+pip install .
+
+# Now use it from anywhere!
+damngood --help
+damngood list
+```
+
+### Option 2: Install from GitHub directly
+
+```bash
+pip install git+https://github.com/5LV10/damngood.git
+
+# Use it anywhere
+damngood --help
+```
+
+### Option 3: Quick alias (no installation)
+
+Add this to your `~/.bashrc` or `~/.zshrc`:
+
+```bash
+alias damngood="python3 /path/to/damngood/damngood-cli.py"
+```
+
+Then reload your shell:
+```bash
+source ~/.bashrc  # or ~/.zshrc
+damngood --help
+```
+
+### Option 4: Run without installing
+
+```bash
+cd damngood
+python3 damngood-cli.py --help
 ```
 
 ## Config Locations
