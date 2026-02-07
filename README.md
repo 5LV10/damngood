@@ -75,7 +75,3 @@ git clone <repo>
 cd damngood
 python3 mcp_manager.py --help
 ```
-
-## License
-
-MIT
