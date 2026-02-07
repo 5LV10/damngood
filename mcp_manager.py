@@ -62,9 +62,40 @@ class MCPServerManager:
         "generic": Path.home() / ".mcp" / "config.json",
     }
 
+    # Path to store custom tool registrations
+    CUSTOM_TOOLS_PATH = Path.home() / ".config" / "damngood" / "custom_tools.json"
+
+    @classmethod
+    def load_custom_tools(cls) -> Dict[str, Dict[str, str]]:
+        """Load custom tool registrations"""
+        if cls.CUSTOM_TOOLS_PATH.exists():
+            with open(cls.CUSTOM_TOOLS_PATH, "r") as f:
+                return json.load(f)
+        return {}
+
+    @classmethod
+    def save_custom_tools(cls, tools: Dict[str, Dict[str, str]]):
+        """Save custom tool registrations"""
+        cls.CUSTOM_TOOLS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(cls.CUSTOM_TOOLS_PATH, "w") as f:
+            json.dump(tools, f, indent=2)
+
+    @classmethod
+    def register_custom_tool(
+        cls, name: str, config_path: str, config_key: str = "mcpServers"
+    ):
+        """Register a custom tool"""
+        tools = cls.load_custom_tools()
+        tools[name.lower()] = {"path": config_path, "key": config_key}
+        cls.save_custom_tools(tools)
+        print(f"Registered custom tool '{name}' -> {config_path} (key: {config_key})")
+
     def __init__(
         self, config_path: Optional[str] = None, client_type: Optional[str] = None
     ):
+        # Load custom tools
+        custom_tools = self.load_custom_tools()
+
         # Priority: 1) explicit config_path, 2) explicit client_type, 3) auto-detect
         if config_path:
             # User specified exact path
@@ -73,9 +104,13 @@ class MCPServerManager:
         elif client_type:
             # User specified which client to use - ignore any existing configs
             self.client_type = client_type.lower()
-            self.config_path = self.CLIENT_PATHS.get(
-                self.client_type, self.CLIENT_PATHS["generic"]
-            )
+            if self.client_type in custom_tools:
+                # Use custom tool registration
+                self.config_path = Path(custom_tools[self.client_type]["path"])
+            else:
+                self.config_path = self.CLIENT_PATHS.get(
+                    self.client_type, self.CLIENT_PATHS["generic"]
+                )
         else:
             # Auto-detect from existing configs
             self.config_path = self._find_config()
@@ -97,6 +132,9 @@ class MCPServerManager:
 
     def _get_mcp_key(self) -> str:
         """Get the MCP config key for the current client"""
+        custom_tools = self.load_custom_tools()
+        if self.client_type in custom_tools:
+            return custom_tools[self.client_type]["key"]
         return self.CLIENT_FORMATS.get(self.client_type, "mcpServers")
 
     def _find_config(self) -> Path:
@@ -219,9 +257,15 @@ Examples:
         """,
     )
     parser.add_argument("--config", "-c", help="Path to config file")
+    # Load custom tools for choices
+    custom_tools = MCPServerManager.load_custom_tools()
+    client_choices = ["cursor", "gemini", "opencode", "claude", "generic"] + list(
+        custom_tools.keys()
+    )
+
     parser.add_argument(
         "--client",
-        choices=["cursor", "gemini", "opencode", "claude", "generic"],
+        choices=client_choices,
         help="Specify which MCP client to use (takes precedence over auto-detection)",
     )
 
@@ -261,6 +305,21 @@ Examples:
     export_parser = subparsers.add_parser("export", help="Export config to file")
     export_parser.add_argument("path", help="Output file path")
 
+    # Register command for custom tools
+    register_parser = subparsers.add_parser(
+        "register", help="Register a custom MCP client tool"
+    )
+    register_parser.add_argument("name", help="Tool name (e.g., 'mytool')")
+    register_parser.add_argument(
+        "--path", "-p", required=True, help="Path to config file"
+    )
+    register_parser.add_argument(
+        "--key",
+        "-k",
+        default="mcpServers",
+        help="Config key (default: mcpServers, use 'mcp' for OpenCode-style)",
+    )
+
     args = parser.parse_args()
 
     if not args.command:
@@ -299,6 +358,9 @@ Examples:
 
     elif args.command == "export":
         manager.export_config(args.path)
+
+    elif args.command == "register":
+        MCPServerManager.register_custom_tool(args.name, args.path, args.key)
 
 
 if __name__ == "__main__":
