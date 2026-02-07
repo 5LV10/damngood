@@ -53,9 +53,30 @@ class MCPServerManager:
         "generic": "mcpServers",
     }
 
-    def __init__(self, config_path: Optional[str] = None):
-        self.config_path = Path(config_path) if config_path else self._find_config()
-        self.client_type = self._detect_client_type()
+    # Default config paths for each client type
+    CLIENT_PATHS = {
+        "cursor": Path.home() / ".cursor" / "mcp.json",
+        "gemini": Path.home() / ".gemini" / "settings.json",
+        "opencode": Path.home() / ".config" / "opencode" / "opencode.json",
+        "claude": Path.home() / ".claude" / "config.json",
+        "generic": Path.home() / ".mcp" / "config.json",
+    }
+
+    def __init__(
+        self, config_path: Optional[str] = None, client_type: Optional[str] = None
+    ):
+        if client_type and not config_path:
+            # Use default path for specified client
+            self.config_path = self.CLIENT_PATHS.get(
+                client_type.lower(), self.CLIENT_PATHS["generic"]
+            )
+            self.client_type = client_type.lower()
+        elif config_path:
+            self.config_path = Path(config_path)
+            self.client_type = self._detect_client_type()
+        else:
+            self.config_path = self._find_config()
+            self.client_type = self._detect_client_type()
         self.config = self._load_config()
 
     def _detect_client_type(self) -> str:
@@ -188,15 +209,18 @@ Supported Clients: cursor, gemini, opencode, claude, generic
 Config Auto-Detection: ~/.cursor/mcp.json, ~/.gemini/settings.json, ~/.config/opencode/opencode.json, etc.
 
 Examples:
-  %(prog)s list                     # List all servers (auto-detects client)
-  %(prog)s add myserver --command npx --args "-y @modelcontextprotocol/server-filesystem" 
-  %(prog)s enable myserver          # Enable a server
-  %(prog)s disable myserver         # Disable a server
-  %(prog)s remove myserver          # Remove a server
-  %(prog)s --config ~/.cursor/mcp.json list  # Use specific config
+  %(prog)s list                                   # Auto-detect client
+  %(prog)s --client cursor list                   # Explicitly use Cursor
+  %(prog)s --client opencode add myserver --command npx
+  %(prog)s --config ~/.cursor/mcp.json list       # Use specific config file
         """,
     )
     parser.add_argument("--config", "-c", help="Path to config file")
+    parser.add_argument(
+        "--client",
+        choices=["cursor", "gemini", "opencode", "claude", "generic"],
+        help="Specify which MCP client to use (creates config if doesn't exist)",
+    )
 
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
@@ -240,7 +264,7 @@ Examples:
         parser.print_help()
         sys.exit(1)
 
-    manager = MCPServerManager(args.config)
+    manager = MCPServerManager(args.config, args.client)
 
     if args.command == "list":
         manager.list_servers()
