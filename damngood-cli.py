@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-DamnGood MCP Manager - Standalone CLI Entry Point
-Run this directly for development/testing
-"""
-
 import sys
 from pathlib import Path
 

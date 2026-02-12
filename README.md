@@ -1,166 +1,48 @@
 # DamnGood MCP Manager
 
-A simple CLI tool to manage Model Context Protocol (MCP) servers across multiple AI coding assistants.
+A centralized CLI tool to manage Model Context Protocol (MCP) servers across multiple AI coding assistants.
+
+## The Problem
+
+Managing MCP servers across different AI tools (Cursor, Claude, Gemini, OpenCode) is painful. You have to:
+- Add the same server to each tool individually
+- Keep configurations in sync manually
+- Edit different JSON files in different locations
+
+## The Solution
+
+DamnGood MCP Manager provides **centralized management**:
+1. Store your MCP servers in one central registry
+2. Assign each server to the AI tools you want to use it with
+3. Sync once to push configs to all tools automatically
 
 ## Supported Clients
 
+Auto-discovered clients:
 - **Cursor** - `~/.cursor/mcp.json`
 - **Claude** (Code & Desktop) - `~/.claude/config.json`
 - **Gemini CLI** - `~/.gemini/settings.json`
 - **OpenCode** - `~/.config/opencode/opencode.json`
-- **Generic MCP** - `~/.mcp/config.json`
-- **Custom Tools** - Register any MCP-compatible tool
 
-## Install
-
-Install globally with pip so you can use `damngood` from anywhere:
-
-```bash
-# Clone the repo
-git clone https://github.com/5LV10/damngood.git
-cd damngood
-
-# Install in editable mode (for development)
-pip install -e .
-
-# Or install normally
-pip install .
-
-# All set, damngood is ready to be used
-damngood --help
-damngood list
-```
+Plus register any custom MCP-compatible tool.
 
 ## Quick Start
 
 ```bash
-# List servers (auto-detects client)
-damngood list
+# Auto-discovers your installed AI tools
+damngood client list
 
-# Add a server
-damngood add filesystem --command npx --args "-y @modelcontextprotocol/server-filesystem"
+# Import existing configs from your tools
+damngood import
 
-# Toggle server on/off
-damngood toggle filesystem
+# Or add a new mcp server
+damngood add filesystem
 
-# Remove a server
-damngood remove filesystem
+# Sync to all assigned clients
+damngood sync
 ```
 
-## Usage
-
-```
-damngood [options] <command>
-
-Commands:
-  list              List all configured servers
-  add <name>        Add a new MCP server
-  remove <name>     Remove a server
-  enable <name>     Enable a server
-  disable <name>    Disable a server
-  toggle <name>     Toggle server state
-  export <path>     Export config to file
-  register <name>   Register a custom MCP client
-
-Options:
-  -c, --config      Specify custom config file path
-  --client          Specify which client to use (cursor/gemini/opencode/claude/generic)
-```
-
-## Specify Your Client
-
-By default, the tool auto-detects which MCP client you're using based on existing config files. But you can explicitly specify:
-
-```bash
-# Use Cursor explicitly (ignores other configs)
-damngood --client cursor list
-
-# Use Gemini explicitly
-damngood --client gemini add myserver --command npx
-
-# Use OpenCode explicitly
-damngood --client opencode enable myserver
-```
-
-This is useful when you have multiple MCP configs but want to manage a specific one.
-
-## Register Custom Tools
-
-Want to use a tool that's not in our supported list? Register it:
-
-```bash
-# Register a custom tool (e.g., VS Code)
-damngood register windsurf --path ~/.windsurf/mcp.json
-
-# Register with custom config key (like OpenCode uses 'mcp' instead of 'mcpServers')
-damngood register mytool --path ~/.mytool/config.json --key mcp
-
-# Now use it like any other client
-damngood --client windsurf list
-damngood --client windsurf add myserver --command npx
-```
-
-Custom tools are saved to `~/.config/damngood/custom_tools.json` and work exactly like built-in ones.
-
-## Why Use This?
-
-- **No manual JSON editing** - Simple CLI commands
-- **Works everywhere** - Auto-detects Cursor, Claude, Gemini, OpenCode
-- **Explicit control** - Use `--client` to force a specific tool
-- **Extensible** - Register any MCP-compatible tool
-- **Safe** - Can't break your config with typos
-- **Fast** - Enable/disable servers in seconds
-
-## Examples
-
-### Auto-detection workflow
-```bash
-# Your Cursor MCP servers are acting up
-$ damngood list
-Configured MCP Servers (cursor):
-------------------------------------------------------------
-  filesystem           [enabled]
-  slack                [enabled]
-  postgres             [enabled]
-
-# Disable the broken one
-$ damngood disable slack
-Server 'slack' disabled
-Config saved to /home/dev/.cursor/mcp.json (cursor format)
-```
-
-### Explicit client selection
-```bash
-# Force use of Claude even if other configs exist
-$ damngood --client claude list
-Configured MCP Servers (claude):
-------------------------------------------------------------
-No MCP servers configured.
-
-# Add server to Claude specifically
-$ damngood --client claude add github --command npx --args "-y @modelcontextprotocol/server-github"
-Added MCP server: github
-Config saved to /home/dev/.claude/config.json (claude format)
-```
-
-### Custom tool registration
-```bash
-# Register VS Code as custom tool
-$ damngood register vscode --path ~/.vscode/mcp.json
-Registered custom tool 'vscode' -> /home/dev/.vscode/mcp.json (key: mcpServers)
-
-# Use it
-$ damngood --client vscode list
-Configured MCP Servers (vscode):
-------------------------------------------------------------
-  myserver             [enabled]
-```
-
-## Other ways to install
-
-### Option 1: Install with pip (Recommended)
-
-Install globally so you can use `damngood` from anywhere:
+## Install
 
 ```bash
 # Clone the repo
@@ -173,50 +55,307 @@ pip install -e .
 # Or install normally
 pip install .
 
-# Now use it from anywhere!
+# All set!
 damngood --help
+```
+
+## How It Works
+
+### Central Registry
+
+All your MCP servers are stored in `~/.damngood/registry.json`:
+
+```json
+{
+  "servers": {
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"],
+      "env": {},
+      "clients": ["cursor", "gemini"],
+      "created_at": "2025-02-12T10:00:00",
+      "updated_at": "2025-02-12T10:00:00"
+    }
+  }
+}
+```
+
+The `clients` array determines which AI tools get this server on sync.
+
+### Client Registry
+
+Your AI tools are tracked in `~/.damngood/clients.json`:
+
+```json
+{
+  "clients": {
+    "cursor": {
+      "name": "cursor",
+      "path": "/home/user/.cursor/mcp.json",
+      "key": "mcpServers",
+      "auto_discovered": true,
+      "enabled": true
+    }
+  }
+}
+```
+
+Auto-discovered clients are found by checking if their config files exist.
+
+## Usage
+
+### Two Modes of Operation
+
+**Central Mode (Default)** - Manage servers centrally across all clients:
+```bash
 damngood list
+damngood add myserver
+damngood sync
 ```
 
-### Option 2: Install from GitHub directly
+**Client Mode** - Manage a single client's servers directly:
+```bash
+damngood --client cursor list
+damngood --client cursor add myserver --command npx
+```
+
+### Client Management
 
 ```bash
-pip install git+https://github.com/5LV10/damngood.git
+# List discovered and registered clients
+damngood client list
 
-# Use it anywhere
-damngood --help
+# Register a custom tool
+damngood client register windsurf --path ~/.windsurf/mcp.json
+
+# Disable a client (won't receive syncs)
+damngood client disable gemini
+
+# Remove a custom registration
+damngood client remove windsurf
 ```
 
-### Option 3: Quick alias (no installation)
-
-Add this to your `~/.bashrc` or `~/.zshrc`:
+### Central Registry Commands
 
 ```bash
-alias damngood="python3 /path/to/damngood/damngood-cli.py"
+# List all centrally managed servers
+damngood list
+
+# Add a server (opens $EDITOR with JSON template)
+damngood add filesystem
+# Editor opens with:
+# {
+#   "type": "stdio",
+#   "command": "npx",
+#   "args": [],
+#   "env": {},
+#   "clients": []
+# }
+# Fill it out, save, close.
+
+# Edit an existing server
+damngood edit filesystem
+
+# Show server details
+damngood show filesystem
+
+# Remove from central registry
+damngood remove filesystem
+
+# Sync to all assigned clients
+damngood sync
+
+# Import existing configs (prompts per-server)
+damngood import
 ```
 
-Then reload your shell:
+### JSON Editing
+
+When you run `damngood add <name>` or `damngood edit <name>`, your default editor opens:
+
+- Uses `$EDITOR` environment variable
+- Falls back to: nano → vim → vi
+- Validates JSON when you save
+- Aborts if you close without saving
+
+Example workflow:
 ```bash
-source ~/.bashrc  # or ~/.zshrc
-damngood --help
+$ damngood add github
+# nano opens with template...
+# Edit to:
+# {
+#   "type": "stdio",
+#   "command": "npx",
+#   "args": ["-y", "@modelcontextprotocol/server-github"],
+#   "env": {"GITHUB_TOKEN": "your-token"},
+#   "clients": ["cursor", "claude"]
+# }
+# Save and exit nano
+Added server 'github' to central registry
+
+$ damngood sync
+Syncing 1 server(s) to 2 client(s)...
+Syncing to cursor...
+  Synced 1 server(s) to /home/user/.cursor/mcp.json
+Syncing to claude...
+  Synced 1 server(s) to /home/user/.claude/config.json
+Sync complete!
 ```
 
-### Option 4: Run without installing
+### Import Existing Configs
 
 ```bash
-cd damngood
-python3 damngood-cli.py --help
+$ damngood import
+
+Found server 'slack' in cursor
+Import? [y]es / [n]o / [s]kip all: y
+  Imported 'slack'
+
+Found server 'postgres' in gemini
+Import? [y]es / [n]o / [s]kip all: y
+  Imported 'postgres'
+
+Imported 2 server(s): slack, postgres
+Run 'damngood sync' to push to all clients
 ```
 
-## Config Locations
+## Workflow Examples
 
-The tool searches for configs in this order:
-1. `~/.cursor/mcp.json` (Cursor)
-2. `~/.gemini/settings.json` (Gemini CLI)
-3. `~/.config/opencode/opencode.json` (OpenCode)
-4. `~/.claude/config.json` (Claude)
-5. `~/.mcp/config.json` (Generic)
+### Setting up a new server across multiple tools
 
-Project-level configs are also checked (e.g., `./.cursor/mcp.json`).
+```bash
+# 1. Check your clients
+$ damngood client list
+Registered Clients:
+----------------------------------------------------------------------
+Name            Status     Auto   Config Path
+----------------------------------------------------------------------
+cursor          enabled    yes    /home/user/.cursor/mcp.json
+gemini          enabled    yes    /home/user/.gemini/settings.json
+opencode        enabled    yes    /home/user/.config/opencode/opencode.json
 
-Use `--config <path>` to specify an exact file, or `--client <name>` to use a specific client's default location.
+# 2. Add server via editor
+$ damngood add filesystem
+# (editor opens, fill in details, set clients: ["cursor", "gemini"])
+
+# 3. Sync to assigned clients
+$ damngood sync
+Syncing 1 server(s) to 2 client(s)...
+Syncing to cursor...
+  Synced 1 server(s) to /home/user/.cursor/mcp.json
+Syncing to gemini...
+  Synced 1 server(s) to /home/user/.gemini/settings.json
+Sync complete!
+
+# 4. Verify
+$ damngood list
+Centrally Managed Servers:
+----------------------------------------------------------------------
+Name                 Command                        Clients
+----------------------------------------------------------------------
+filesystem           npx -y @modelcontextpro...     cursor, gemini
+```
+
+### Managing existing setups
+
+```bash
+# Import what you already have
+$ damngood import
+Found server 'old-server' in cursor
+Import? [y]es / [n]o / [s]kip all: y
+  Imported 'old-server'
+
+# Now it's in central registry
+$ damngood show old-server
+Server: old-server
+----------------------------------------
+Type: stdio
+Command: npx
+Args: ['-y', 'some-package']
+Env: {}
+Clients: ['cursor']
+
+# Add another client to this server
+$ damngood edit old-server
+# (change clients to ["cursor", "gemini"])
+
+# Sync to update all clients
+$ damngood sync
+```
+
+### Single-client mode
+
+Sometimes you want to manage just one tool:
+
+```bash
+# View only Cursor's servers
+$ damngood --client cursor list
+Configured MCP Servers (cursor):
+------------------------------------------------------------
+  filesystem           [enabled]
+    Type: stdio
+    Command: npx
+
+# Add to Cursor only (not central registry)
+$ damngood --client cursor add temp-server --command npx --args "-y package"
+```
+
+## Configuration Files
+
+All configuration is stored in `~/.damngood/`:
+
+- `registry.json` - Central MCP server registry
+- `clients.json` - Registered AI tool clients
+
+Config files for AI tools are managed by DamnGood and should not be edited manually when using central mode.
+
+## Commands Reference
+
+### Central Commands (Default)
+
+| Command | Description |
+|---------|-------------|
+| `list` | List centrally managed servers |
+| `add <name>` | Add server via JSON editor |
+| `edit <name>` | Edit server via JSON editor |
+| `remove <name>` | Remove from central registry |
+| `show <name>` | Show server details |
+| `sync` | Sync to all assigned clients |
+| `import` | Import existing configs |
+
+### Client Commands
+
+| Command | Description |
+|---------|-------------|
+| `client list` | List registered clients |
+| `client register <name>` | Register new client |
+| `client remove <name>` | Remove registered client |
+| `client enable <name>` | Enable client for sync |
+| `client disable <name>` | Disable client |
+
+### Single-Client Commands (with `--client`)
+
+| Command | Description |
+|---------|-------------|
+| `list` | List client's servers |
+| `add <name>` | Add to single client |
+| `remove <name>` | Remove from single client |
+| `enable/disable/toggle <name>` | Change server state |
+| `export <path>` | Export client's config |
+
+## Tips
+
+- **Auto-discovery**: Run `damngood client list` after installing a new AI tool
+- **Selective sync**: Use the `clients` array to control which tools get each server
+- **Quick edits**: `damngood edit <name>` is faster than manual JSON editing
+- **Migration**: Use `import` to gradually move from manual configs to central management
+
+## Why Use This?
+
+- **One source of truth** - Central registry eliminates config drift
+- **DRY principle** - Define once, use everywhere
+- **Safe editing** - JSON validation prevents syntax errors
+- **Editor of choice** - Use your preferred editor for configs
+- **Flexible** - Works with any MCP-compatible tool
+- **Non-destructive** - Import preserves existing configs
