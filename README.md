@@ -26,22 +26,6 @@ Auto-discovered clients:
 
 Plus register any custom MCP-compatible tool.
 
-## Quick Start
-
-```bash
-# Auto-discovers your installed AI tools
-damngood client list
-
-# Import existing configs from your tools
-damngood import
-
-# Or add a new mcp server
-damngood add filesystem
-
-# Sync to all assigned clients
-damngood sync
-```
-
 ## Install
 
 ```bash
@@ -57,6 +41,22 @@ pip install .
 
 # All set!
 damngood --help
+```
+
+## Quick Start
+
+```bash
+# Auto-discovers your installed AI tools
+damngood client list
+
+# Import existing configs from your tools
+damngood import
+
+# Or add a new mcp server
+damngood add filesystem
+
+# Sync to all assigned clients
+damngood sync
 ```
 
 ## How It Works
