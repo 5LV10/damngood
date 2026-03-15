@@ -1,69 +1,76 @@
-# DamnGood MCP Manager
+# DamnGood
 
-A centralized CLI tool to manage Model Context Protocol (MCP) servers across multiple AI coding assistants.
+A centralized CLI tool to manage **MCP servers**, **agent instructions**, and **skills** across multiple AI coding assistants.
 
 ## The Problem
 
-Managing MCP servers across different AI tools (Cursor, Claude, Gemini, OpenCode) is painful. You have to:
-- Add the same server to each tool individually
-- Keep configurations in sync manually
-- Edit different JSON files in different locations
+Managing AI tool configuration across different editors is painful:
+- Add the same MCP server to each tool individually
+- Copy-paste the same instructions into every tool's config
+- Re-create the same slash commands tool by tool
+- Keep everything in sync manually across JSON files, Markdown files, and config dirs
 
 ## The Solution
 
-DamnGood MCP Manager provides **centralized management**:
-1. Store your MCP servers in one central registry
-2. Assign each server to the AI tools you want to use it with
-3. Sync once to push configs to all tools automatically
+DamnGood provides **centralized management** for all three:
+
+1. **MCP Servers** — store in one registry, sync to all tools
+2. **Instructions** — write once, push to every tool's global instruction file (CLAUDE.md, GEMINI.md, global_rules.md, etc.)
+3. **Skills** — define reusable slash commands centrally, sync as native SKILL.md files
 
 ## Supported Clients
 
 Auto-discovered clients:
-- **Cursor** - `~/.cursor/mcp.json`
-- **Claude** (Code & Desktop) - `~/.claude.json`
-- **Gemini CLI** - `~/.gemini/settings.json`
-- **OpenCode** - `~/.config/opencode/opencode.json`
+
+| Client | MCP | Instructions | Skills |
+|--------|-----|-------------|--------|
+| **Claude Code** | ✓ `~/.claude.json` | ✓ `~/.claude/CLAUDE.md` | ✓ `~/.claude/skills/` |
+| **Gemini CLI** | ✓ `~/.gemini/settings.json` | ✓ `~/.gemini/GEMINI.md` | — |
+| **Cursor** | ✓ `~/.cursor/mcp.json` | ✓ `~/.cursor/rules/damngood-instructions.mdc` | — |
+| **Windsurf** | — | ✓ `~/.codeium/windsurf/memories/global_rules.md` | — |
+| **OpenCode** | ✓ `~/.config/opencode/opencode.json` | ✓ `~/.config/opencode/AGENTS.md` | ✓ `~/.config/opencode/skills/` |
+| **Continue.dev** | — | ✓ `~/.continue/rules/damngood.md` | — |
+| **Claude Desktop** | ✓ platform app data | — | — |
 
 Plus register any custom MCP-compatible tool.
 
 ## Install
 
 ```bash
-# Clone the repo
 git clone https://github.com/5LV10/damngood.git
 cd damngood
-
-# Install in editable mode (for development)
 pip install -e .
 
-# Or install normally
-pip install .
-
-# All set!
 damngood --help
 ```
 
 ## Quick Start
 
 ```bash
-# Auto-discovers your installed AI tools
+# See which AI tools are installed
 damngood client list
 
-# Import existing configs from your tools
-damngood import
+# --- MCP Servers ---
+damngood import              # pull existing MCP configs into the registry
+damngood add filesystem      # add a new server (opens $EDITOR)
+damngood sync                # push to all assigned clients
 
-# Or add a new mcp server
-damngood add filesystem
+# --- Agent Instructions ---
+damngood instructions add coding-style   # write a snippet (opens $EDITOR)
+damngood instructions sync               # push to CLAUDE.md, GEMINI.md, etc.
 
-# Sync to all assigned clients
-damngood sync
+# --- Skills ---
+damngood skills add review-pr            # create a skill (opens $EDITOR)
+damngood skills sync                     # deploy to ~/.claude/skills/ etc.
 ```
 
-## How It Works
+---
 
-### Central Registry
+## MCP Servers
 
-All your MCP servers are stored in `~/.damngood/registry.json`:
+### How it works
+
+Servers are stored in `~/.damngood/registry.json`. The `clients` array controls which tools receive each server on sync.
 
 ```json
 {
@@ -73,246 +80,200 @@ All your MCP servers are stored in `~/.damngood/registry.json`:
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem"],
       "env": {},
-      "clients": ["cursor", "gemini"],
-      "created_at": "2025-02-12T10:00:00",
-      "updated_at": "2025-02-12T10:00:00"
+      "clients": ["cursor", "gemini"]
     }
   }
 }
 ```
 
-The `clients` array determines which AI tools get this server on sync.
-
-### Client Registry
-
-Your AI tools are tracked in `~/.damngood/clients.json`:
-
-```json
-{
-  "clients": {
-    "cursor": {
-      "name": "cursor",
-      "path": "/home/user/.cursor/mcp.json",
-      "key": "mcpServers",
-      "auto_discovered": true,
-      "enabled": true
-    }
-  }
-}
-```
-
-Auto-discovered clients are found by checking if their config files exist.
-
-## Usage
-
-### Two Modes of Operation
-
-**Central Mode (Default)** - Manage servers centrally across all clients:
-```bash
-damngood list
-damngood add myserver
-damngood sync
-```
-
-**Client Mode** - Manage a single client's servers directly:
-```bash
-damngood --client cursor list
-damngood --client cursor add myserver --command npx
-```
-
-### Client Management
+### Commands
 
 ```bash
-# List discovered and registered clients
-damngood client list
-
-# Register a custom tool
-damngood client register windsurf --path ~/.windsurf/mcp.json
-
-# Disable a client (won't receive syncs)
-damngood client disable gemini
-
-# Remove a custom registration
-damngood client remove windsurf
+damngood list                  # list servers in central registry
+damngood add <name>            # add via JSON editor
+damngood edit <name>           # edit via JSON editor
+damngood remove <name>         # remove from registry
+damngood show <name>           # show details
+damngood sync                  # push to all assigned clients
+damngood import                # import from existing client configs
 ```
 
-### Central Registry Commands
+### Example
 
-```bash
-# List all centrally managed servers
-damngood list
-
-# Add a server (opens $EDITOR with JSON template)
-damngood add filesystem
-# Editor opens with:
-# {
-#   "type": "stdio",
-#   "command": "npx",
-#   "args": [],
-#   "env": {},
-#   "clients": []
-# }
-# Fill it out, save, close.
-
-# Edit an existing server
-damngood edit filesystem
-
-# Show server details
-damngood show filesystem
-
-# Remove from central registry
-damngood remove filesystem
-
-# Sync to all assigned clients
-damngood sync
-
-# Import existing configs (prompts per-server)
-damngood import
-```
-
-### JSON Editing
-
-When you run `damngood add <name>` or `damngood edit <name>`, your default editor opens:
-
-- Uses `$EDITOR` environment variable
-- Falls back to: nano → vim → vi
-- Validates JSON when you save
-- Aborts if you close without saving
-
-Example workflow:
 ```bash
 $ damngood add github
-# nano opens with template...
-# Edit to:
-# {
-#   "type": "stdio",
-#   "command": "npx",
-#   "args": ["-y", "@modelcontextprotocol/server-github"],
-#   "env": {"GITHUB_TOKEN": "your-token"},
-#   "clients": ["cursor", "claude"]
-# }
-# Save and exit nano
+# Editor opens with template — fill in command, args, env, clients
 Added server 'github' to central registry
 
 $ damngood sync
-Syncing 1 server(s) to 2 client(s)...
-Syncing to cursor...
-  Synced 1 server(s) to /home/user/.cursor/mcp.json
-Syncing to claude...
-  Synced 1 server(s) to /home/user/.claude/config.json
-Sync complete!
+  ✓ cursor    →  2 server(s)  (~/.cursor/mcp.json)
+  ✓ gemini    →  1 server(s)  (~/.gemini/settings.json)
 ```
 
-### Import Existing Configs
+---
+
+## Agent Instructions
+
+Write markdown instruction snippets once and push them to every tool's global instruction file. Each tool reads these files automatically on startup.
+
+### How it works
+
+Snippets are stored in `~/.damngood/instructions/`. On sync, damngood inserts a **managed section** into each tool's instruction file using HTML comment sentinels:
+
+```markdown
+# My personal notes (not touched by damngood)
+
+<!-- DAMNGOOD:START -->
+<!-- Managed by damngood. Run 'damngood instructions sync' to update. -->
+
+Always prefer TypeScript over JavaScript.
+Use conventional commits for all commit messages.
+
+<!-- DAMNGOOD:END -->
+
+More personal notes (also untouched)
+```
+
+- User content above/below the sentinels is **never modified**
+- Running sync twice is **idempotent**
+- Removing all snippets from a client **removes the sentinels entirely**
+
+### Adding a snippet
 
 ```bash
-$ damngood import
-
-Found server 'slack' in cursor
-Import? [y]es / [n]o / [s]kip all: y
-  Imported 'slack'
-
-Found server 'postgres' in gemini
-Import? [y]es / [n]o / [s]kip all: y
-  Imported 'postgres'
-
-Imported 2 server(s): slack, postgres
-Run 'damngood sync' to push to all clients
+$ damngood instructions add coding-style
 ```
 
-## Workflow Examples
+Your editor opens with a template:
 
-### Setting up a new server across multiple tools
+```markdown
+---
+description: "Brief description of this instruction snippet"
+clients: [claude, gemini, cursor, windsurf, opencode, continue]
+enabled: true
+---
+
+Write your instruction content here in plain Markdown.
+```
+
+Edit the frontmatter to set which clients receive this snippet, write your instructions in the body, save and close.
+
+### Commands
 
 ```bash
-# 1. Check your clients
-$ damngood client list
-Registered Clients:
-----------------------------------------------------------------------
-Name            Status     Auto   Config Path
-----------------------------------------------------------------------
-cursor          enabled    yes    /home/user/.cursor/mcp.json
-gemini          enabled    yes    /home/user/.gemini/settings.json
-opencode        enabled    yes    /home/user/.config/opencode/opencode.json
-
-# 2. Add server via editor
-$ damngood add filesystem
-# (editor opens, fill in details, set clients: ["cursor", "gemini"])
-
-# 3. Sync to assigned clients
-$ damngood sync
-Syncing 1 server(s) to 2 client(s)...
-Syncing to cursor...
-  Synced 1 server(s) to /home/user/.cursor/mcp.json
-Syncing to gemini...
-  Synced 1 server(s) to /home/user/.gemini/settings.json
-Sync complete!
-
-# 4. Verify
-$ damngood list
-Centrally Managed Servers:
-----------------------------------------------------------------------
-Name                 Command                        Clients
-----------------------------------------------------------------------
-filesystem           npx -y @modelcontextpro...     cursor, gemini
+damngood instructions list              # list all snippets
+damngood instructions add <name>        # add snippet (opens editor)
+damngood instructions edit <name>       # edit snippet
+damngood instructions remove <name>     # remove from registry
+damngood instructions show <name>       # show content and metadata
+damngood instructions sync              # push to all assigned clients
 ```
 
-### Managing existing setups
+### Client targets
+
+| Client | Instructions file |
+|--------|------------------|
+| `claude` | `~/.claude/CLAUDE.md` |
+| `gemini` | `~/.gemini/GEMINI.md` |
+| `cursor` | `~/.cursor/rules/damngood-instructions.mdc` (always-apply rule) |
+| `windsurf` | `~/.codeium/windsurf/memories/global_rules.md` |
+| `opencode` | `~/.config/opencode/AGENTS.md` |
+| `continue` | `~/.continue/rules/damngood.md` |
+
+> **Windsurf note**: Windsurf has a combined 12,000 character limit. DamnGood warns if you approach it.
+
+---
+
+## Skills
+
+Define reusable slash commands centrally and sync them as native `SKILL.md` files to Claude Code and OpenCode.
+
+### How it works
+
+Skills are stored in `~/.damngood/skills/<name>/content.md`. On sync, damngood writes a native `SKILL.md` to each client's skills directory. Files written by damngood are marked with a managed header so they're never accidentally overwritten.
+
+### Adding a skill
 
 ```bash
-# Import what you already have
-$ damngood import
-Found server 'old-server' in cursor
-Import? [y]es / [n]o / [s]kip all: y
-  Imported 'old-server'
-
-# Now it's in central registry
-$ damngood show old-server
-Server: old-server
-----------------------------------------
-Type: stdio
-Command: npx
-Args: ['-y', 'some-package']
-Env: {}
-Clients: ['cursor']
-
-# Add another client to this server
-$ damngood edit old-server
-# (change clients to ["cursor", "gemini"])
-
-# Sync to update all clients
-$ damngood sync
+$ damngood skills add review-pr
 ```
 
-### Single-client mode
+Your editor opens with a template:
 
-Sometimes you want to manage just one tool:
+```markdown
+---
+description: "What this skill does"
+user-invocable: true
+allowed-tools: [Read, Grep, Bash]
+clients: [claude, opencode]
+enabled: true
+---
+
+# review-pr
+
+Review a pull request for correctness, style, and potential issues.
+
+## Steps
+
+1. Read the diff with `git diff`
+2. Check for security issues
+3. Summarize findings
+```
+
+### Commands
 
 ```bash
-# View only Cursor's servers
-$ damngood --client cursor list
-Configured MCP Servers (cursor):
-------------------------------------------------------------
-  filesystem           [enabled]
-    Type: stdio
-    Command: npx
-
-# Add to Cursor only (not central registry)
-$ damngood --client cursor add temp-server --command npx --args "-y package"
+damngood skills list              # list all skills
+damngood skills add <name>        # add skill (opens editor)
+damngood skills edit <name>       # edit skill
+damngood skills remove <name>     # remove from registry + delete SKILL.md files
+damngood skills show <name>       # show content and metadata
+damngood skills sync              # deploy to all assigned clients
 ```
+
+### Client targets
+
+| Client | Skills directory |
+|--------|-----------------|
+| `claude` | `~/.claude/skills/<name>/SKILL.md` |
+| `opencode` | `~/.config/opencode/skills/<name>/SKILL.md` |
+
+---
+
+## Client Management
+
+```bash
+damngood client list                    # show all discovered clients and their status
+damngood client enable <name>           # include client in all syncs
+damngood client disable <name>          # exclude client from syncs
+damngood client register <name> --path <path>   # add a custom MCP tool
+damngood client remove <name>           # remove a custom registration
+```
+
+---
 
 ## Configuration Files
 
-All configuration is stored in `~/.damngood/`:
+All configuration lives in `~/.damngood/`:
 
-- `registry.json` - Central MCP server registry
-- `clients.json` - Registered AI tool clients
+```
+~/.damngood/
+  registry.json              MCP server registry
+  clients.json               Registered AI tool clients
+  instructions/
+    index.json               Snippet metadata and client assignments
+    <name>.md                Snippet content (one file per snippet)
+  skills/
+    index.json               Skill metadata and client assignments
+    <name>/
+      content.md             Skill body
+```
 
-Config files for AI tools are managed by DamnGood and should not be edited manually when using central mode.
+---
 
 ## Commands Reference
 
-### Central Commands (Default)
+### MCP Servers
 
 | Command | Description |
 |---------|-------------|
@@ -321,10 +282,32 @@ Config files for AI tools are managed by DamnGood and should not be edited manua
 | `edit <name>` | Edit server via JSON editor |
 | `remove <name>` | Remove from central registry |
 | `show <name>` | Show server details |
-| `sync` | Sync to all assigned clients |
-| `import` | Import existing configs |
+| `sync` | Sync MCP servers to all assigned clients |
+| `import` | Import existing client configs |
 
-### Client Commands
+### Instructions
+
+| Command | Description |
+|---------|-------------|
+| `instructions list` | List all snippets |
+| `instructions add <name>` | Add snippet via editor |
+| `instructions edit <name>` | Edit snippet |
+| `instructions remove <name>` | Remove snippet |
+| `instructions show <name>` | Show snippet details |
+| `instructions sync` | Push snippets to all assigned clients |
+
+### Skills
+
+| Command | Description |
+|---------|-------------|
+| `skills list` | List all skills |
+| `skills add <name>` | Add skill via editor |
+| `skills edit <name>` | Edit skill |
+| `skills remove <name>` | Remove skill + delete SKILL.md files |
+| `skills show <name>` | Show skill details |
+| `skills sync` | Deploy skills to all assigned clients |
+
+### Client Management
 
 | Command | Description |
 |---------|-------------|
@@ -334,28 +317,28 @@ Config files for AI tools are managed by DamnGood and should not be edited manua
 | `client enable <name>` | Enable client for sync |
 | `client disable <name>` | Disable client |
 
-### Single-Client Commands (with `--client`)
+### Single-Client Mode (`--client`)
 
 | Command | Description |
 |---------|-------------|
-| `list` | List client's servers |
-| `add <name>` | Add to single client |
-| `remove <name>` | Remove from single client |
-| `enable/disable/toggle <name>` | Change server state |
-| `export <path>` | Export client's config |
+| `--client cursor list` | List Cursor's MCP servers |
+| `--client cursor add <name>` | Add to Cursor only |
+| `--client cursor remove <name>` | Remove from Cursor only |
+
+---
 
 ## Tips
 
-- **Auto-discovery**: Run `damngood client list` after installing a new AI tool
-- **Selective sync**: Use the `clients` array to control which tools get each server
-- **Quick edits**: `damngood edit <name>` is faster than manual JSON editing
-- **Migration**: Use `import` to gradually move from manual configs to central management
+- **Auto-discovery**: Run `damngood client list` after installing a new AI tool — it will be detected automatically
+- **Selective sync**: Use the `clients` array to control exactly which tools get each server/snippet/skill
+- **Non-destructive instructions**: DamnGood only manages the content between its sentinel markers — your personal notes in CLAUDE.md etc. are never touched
+- **Quick edits**: `damngood instructions edit <name>` re-opens the editor with your existing content pre-loaded
+- **Migration**: Use `damngood import` to move existing MCP configs into the central registry
 
 ## Why Use This?
 
-- **One source of truth** - Central registry eliminates config drift
-- **DRY principle** - Define once, use everywhere
-- **Safe editing** - JSON validation prevents syntax errors
-- **Editor of choice** - Use your preferred editor for configs
-- **Flexible** - Works with any MCP-compatible tool
-- **Non-destructive** - Import preserves existing configs
+- **One source of truth** — central registry eliminates config drift across tools
+- **Write once** — instructions and skills deploy everywhere with a single command
+- **Safe** — managed sections never overwrite user content; skill files check for the managed marker before overwriting
+- **No new dependencies** — pure Python stdlib plus `rich` for the terminal UI
+- **Cross-platform** — Linux, macOS, and Windows paths handled automatically

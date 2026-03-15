@@ -72,6 +72,9 @@ TIPS = [
     "[muted]Tip:[/muted] Use [highlight]damngood import[/highlight] to pull existing configs into the registry",
     "[muted]Tip:[/muted] Use [highlight]damngood add <name>[/highlight] to register a new MCP server",
     "[muted]Tip:[/muted] Use [highlight]damngood show <name>[/highlight] for detailed server info",
+    "[muted]Tip:[/muted] Use [highlight]damngood instructions add <name>[/highlight] to manage agent instructions",
+    "[muted]Tip:[/muted] Use [highlight]damngood skills add <name>[/highlight] to create reusable slash commands",
+    "[muted]Tip:[/muted] Run [highlight]damngood instructions sync[/highlight] to push instructions to all clients",
 ]
 
 # Gradient colors for the logo (top to bottom)
@@ -116,26 +119,43 @@ def print_welcome():
     print_logo()
     print_version()
 
-    # Quick-start box
-    commands = Table.grid(padding=(0, 3))
-    commands.add_column(style="highlight", justify="right")
-    commands.add_column(style="white")
+    # Quick-start box — MCP servers
+    mcp_commands = Table.grid(padding=(0, 3))
+    mcp_commands.add_column(style="highlight", justify="right")
+    mcp_commands.add_column(style="white")
 
-    commands.add_row("damngood list", "List centrally managed servers")
-    commands.add_row("damngood add <name>", "Add a new MCP server")
-    commands.add_row("damngood sync", "Sync servers to all clients")
-    commands.add_row("damngood import", "Import existing client configs")
-    commands.add_row("damngood client list", "Show registered AI clients")
-    commands.add_row("damngood show <name>", "Show server details")
-    commands.add_row("damngood --help", "Full help & options")
+    mcp_commands.add_row("damngood list", "List centrally managed MCP servers")
+    mcp_commands.add_row("damngood add <name>", "Add a new MCP server")
+    mcp_commands.add_row("damngood sync", "Sync servers to all clients")
+    mcp_commands.add_row("damngood import", "Import existing client configs")
+    mcp_commands.add_row("damngood client list", "Show registered AI clients")
 
-    panel = Panel(
-        commands,
-        title="[bold bright_white]⚡ Quick Start[/]",
+    mcp_panel = Panel(
+        mcp_commands,
+        title="[bold bright_white]⚡ MCP Servers[/]",
         border_style="bright_magenta",
         padding=(1, 2),
     )
-    console.print(Align.center(panel))
+
+    # Quick-start box — Instructions & Skills
+    ai_commands = Table.grid(padding=(0, 3))
+    ai_commands.add_column(style="highlight", justify="right")
+    ai_commands.add_column(style="white")
+
+    ai_commands.add_row("damngood instructions add <name>", "Add an instruction snippet")
+    ai_commands.add_row("damngood instructions sync", "Sync instructions to all clients")
+    ai_commands.add_row("damngood skills add <name>", "Add a reusable skill")
+    ai_commands.add_row("damngood skills sync", "Sync skills to all clients")
+    ai_commands.add_row("damngood --help", "Full help & options")
+
+    ai_panel = Panel(
+        ai_commands,
+        title="[bold bright_white]🧠 Instructions & Skills[/]",
+        border_style="cyan",
+        padding=(1, 2),
+    )
+
+    console.print(Align.center(Columns([mcp_panel, ai_panel])))
 
     # Random tip
     console.print()
@@ -421,6 +441,209 @@ def print_import_found(server_name: str, client_name: str):
         f"  [accent]Found[/accent] server [server.name]{server_name}[/server.name] "
         f"in [client.name]{client_name}[/client.name]"
     )
+
+
+def print_capability_warning(client_name: str, feature: str):
+    """Warn that a client does not support a feature."""
+    console.print(
+        f"  [warning]⚠[/warning] [client.name]{client_name}[/client.name] "
+        f"does not support [highlight]{feature}[/highlight] — skipping"
+    )
+
+
+def print_instructions_sync_result(client_name: str, snippet_count: int, path: str):
+    """Print sync status for instructions written to a single client."""
+    console.print(
+        f"  [success]✓[/success] [client.name]{client_name}[/client.name]  "
+        f"[muted]→[/muted]  {snippet_count} snippet(s)  "
+        f"[muted]({path})[/muted]"
+    )
+
+
+def print_skills_sync_result(client_name: str, skill_name: str, path: str):
+    """Print sync status for a single skill written to a client."""
+    console.print(
+        f"  [success]✓[/success] [client.name]{client_name}[/client.name]  "
+        f"[muted]→[/muted]  [server.name]{skill_name}[/server.name]  "
+        f"[muted]({path})[/muted]"
+    )
+
+
+def print_snippet_list(snippets: Dict[str, Any]):
+    """Print a formatted table of instruction snippets."""
+    if not snippets:
+        print_header("Instruction Snippets")
+        console.print(
+            Align.center(
+                Text(
+                    "No snippets found. Use 'damngood instructions add <name>' to add one.",
+                    style="muted",
+                )
+            )
+        )
+        console.print()
+        return
+
+    print_header("Instruction Snippets")
+
+    table = Table(
+        show_header=True,
+        header_style="bold bright_cyan",
+        border_style="dim",
+        row_styles=["", "dim"],
+        pad_edge=True,
+        expand=False,
+    )
+    table.add_column("  Snippet", style="server.name", min_width=18)
+    table.add_column("Description", min_width=28)
+    table.add_column("Clients", style="client.name", min_width=18)
+    table.add_column("Status", justify="center", min_width=10)
+
+    for name, meta in sorted(snippets.items()):
+        desc = meta.get("description", "")
+        if len(desc) > 35:
+            desc = desc[:32] + "..."
+        clients = ", ".join(meta.get("clients", []))
+        enabled = meta.get("enabled", True)
+        status = (
+            Text("● ON", style="server.enabled")
+            if enabled
+            else Text("○ OFF", style="server.disabled")
+        )
+        table.add_row(f"  {name}", desc, clients, status)
+
+    console.print(Align.center(table))
+    console.print()
+
+
+def print_snippet_detail(name: str, meta: Dict[str, Any], content: str):
+    """Print detailed snippet info."""
+    print_header(f"Snippet: {name}")
+
+    detail = Table.grid(padding=(0, 2))
+    detail.add_column(style="bold bright_cyan", justify="right", min_width=12)
+    detail.add_column(style="white")
+
+    detail.add_row("Description", meta.get("description", "N/A"))
+    clients = meta.get("clients", [])
+    detail.add_row("Clients", ", ".join(clients) if clients else "(none)")
+    enabled = meta.get("enabled", True)
+    detail.add_row(
+        "Status",
+        Text("● Enabled", style="server.enabled")
+        if enabled
+        else Text("○ Disabled", style="server.disabled"),
+    )
+    if "created_at" in meta:
+        detail.add_row("Created", meta["created_at"])
+    if "updated_at" in meta:
+        detail.add_row("Updated", meta["updated_at"])
+
+    meta_panel = Panel(detail, title="[bold]Metadata[/]", border_style="bright_magenta", padding=(1, 2))
+
+    content_panel = Panel(
+        content.strip() if content.strip() else "[muted](empty)[/muted]",
+        title="[bold]Content[/]",
+        border_style="dim",
+        padding=(1, 2),
+    )
+
+    console.print(Align.center(meta_panel))
+    console.print(Align.center(content_panel))
+    console.print()
+
+
+def print_skill_list(skills: Dict[str, Any]):
+    """Print a formatted table of skills."""
+    if not skills:
+        print_header("Skills")
+        console.print(
+            Align.center(
+                Text(
+                    "No skills found. Use 'damngood skills add <name>' to add one.",
+                    style="muted",
+                )
+            )
+        )
+        console.print()
+        return
+
+    print_header("Skills")
+
+    table = Table(
+        show_header=True,
+        header_style="bold bright_cyan",
+        border_style="dim",
+        row_styles=["", "dim"],
+        pad_edge=True,
+        expand=False,
+    )
+    table.add_column("  Skill", style="server.name", min_width=18)
+    table.add_column("Description", min_width=28)
+    table.add_column("Clients", style="client.name", min_width=18)
+    table.add_column("Invocable", justify="center", min_width=10)
+    table.add_column("Status", justify="center", min_width=10)
+
+    for name, meta in sorted(skills.items()):
+        desc = meta.get("description", "")
+        if len(desc) > 35:
+            desc = desc[:32] + "..."
+        clients = ", ".join(meta.get("clients", []))
+        invocable = (
+            Text("yes", style="success") if meta.get("user_invocable", True) else Text("no", style="muted")
+        )
+        enabled = meta.get("enabled", True)
+        status = (
+            Text("● ON", style="server.enabled")
+            if enabled
+            else Text("○ OFF", style="server.disabled")
+        )
+        table.add_row(f"  {name}", desc, clients, invocable, status)
+
+    console.print(Align.center(table))
+    console.print()
+
+
+def print_skill_detail(name: str, meta: Dict[str, Any], content: str):
+    """Print detailed skill info."""
+    print_header(f"Skill: {name}")
+
+    detail = Table.grid(padding=(0, 2))
+    detail.add_column(style="bold bright_cyan", justify="right", min_width=14)
+    detail.add_column(style="white")
+
+    detail.add_row("Description", meta.get("description", "N/A"))
+    clients = meta.get("clients", [])
+    detail.add_row("Clients", ", ".join(clients) if clients else "(none)")
+    detail.add_row(
+        "User-invocable",
+        Text("yes", style="success") if meta.get("user_invocable", True) else Text("no", style="muted"),
+    )
+    tools = meta.get("allowed_tools", [])
+    detail.add_row("Allowed tools", ", ".join(tools) if tools else "(all)")
+    enabled = meta.get("enabled", True)
+    detail.add_row(
+        "Status",
+        Text("● Enabled", style="server.enabled")
+        if enabled
+        else Text("○ Disabled", style="server.disabled"),
+    )
+    if "created_at" in meta:
+        detail.add_row("Created", meta["created_at"])
+    if "updated_at" in meta:
+        detail.add_row("Updated", meta["updated_at"])
+
+    meta_panel = Panel(detail, title="[bold]Metadata[/]", border_style="bright_magenta", padding=(1, 2))
+    content_panel = Panel(
+        content.strip() if content.strip() else "[muted](empty)[/muted]",
+        title="[bold]Content[/]",
+        border_style="dim",
+        padding=(1, 2),
+    )
+
+    console.print(Align.center(meta_panel))
+    console.print(Align.center(content_panel))
+    console.print()
 
 
 def print_import_result(imported: List[str]):

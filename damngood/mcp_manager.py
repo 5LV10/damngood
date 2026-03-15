@@ -39,6 +39,13 @@ try:
 except ImportError:
     HAS_TUI = False
 
+try:
+    from damngood.capabilities import CLIENT_CAPABILITIES, supports_instructions, supports_skills
+
+    HAS_CAPABILITIES = True
+except ImportError:
+    HAS_CAPABILITIES = False
+
 
 # Platform Detection
 def _detect_os() -> str:
@@ -105,6 +112,12 @@ def _build_client_paths() -> Dict[str, Path]:
     else:
         paths["opencode"] = home / ".config" / "opencode" / "opencode.json"
 
+    # Windsurf (Codeium) — detected via the memories dir
+    paths["windsurf"] = home / ".codeium" / "windsurf" / "memories" / "global_rules.md"
+
+    # Continue.dev — detected via ~/.continue dir
+    paths["continue"] = home / ".continue" / "config.yaml"
+
     return paths
 
 
@@ -115,16 +128,20 @@ DEFAULT_CLIENT_PATHS = _build_client_paths()
 # clients not listed here.
 CLIENT_DETECT_DIRS: Dict[str, Path] = {
     "claude": Path.home() / ".claude",
+    "windsurf": Path.home() / ".codeium" / "windsurf",
+    "continue": Path.home() / ".continue",
 }
 
 
-# Config keys for different clients
+# Config keys for different clients (empty string = no MCP JSON support)
 CLIENT_CONFIG_KEYS = {
     "cursor": "mcpServers",
     "gemini": "mcpServers",
     "opencode": "mcpServers",
     "claude": "mcpServers",
     "claude_desktop": "mcpServers",
+    "windsurf": "",   # no MCP JSON config — instructions only
+    "continue": "",   # no MCP JSON config — instructions only
 }
 
 # DamnGood config directory
@@ -183,12 +200,17 @@ class ClientManager:
         for client_name, config_path in DEFAULT_CLIENT_PATHS.items():
             detect_dir = CLIENT_DETECT_DIRS.get(client_name, config_path.parent)
             if detect_dir.is_dir():
+                cap = CLIENT_CAPABILITIES.get(client_name, {}) if HAS_CAPABILITIES else {}
                 discovered[client_name] = {
                     "name": client_name,
                     "path": str(config_path),
-                    "key": CLIENT_CONFIG_KEYS[client_name],
+                    "key": CLIENT_CONFIG_KEYS.get(client_name, ""),
                     "auto_discovered": True,
                     "enabled": True,
+                    "capabilities": {
+                        "instructions": cap.get("instructions", False),
+                        "skills": cap.get("skills", False),
+                    },
                 }
         return discovered
 
@@ -308,6 +330,33 @@ class ClientManager:
         """Get only enabled clients"""
         clients = cls.load_clients()
         return {k: v for k, v in clients.items() if v.get("enabled", True)}
+
+    @classmethod
+    def get_enabled_clients_for_instructions(cls) -> Dict[str, Dict[str, Any]]:
+        """Get enabled clients that support instructions syncing."""
+        result = {}
+        for name, cfg in cls.get_enabled_clients().items():
+            # Explicit capability field takes precedence over static table
+            explicit = cfg.get("capabilities", {}).get("instructions")
+            if explicit is not None:
+                if explicit:
+                    result[name] = cfg
+            elif HAS_CAPABILITIES and supports_instructions(name):
+                result[name] = cfg
+        return result
+
+    @classmethod
+    def get_enabled_clients_for_skills(cls) -> Dict[str, Dict[str, Any]]:
+        """Get enabled clients that support skills syncing."""
+        result = {}
+        for name, cfg in cls.get_enabled_clients().items():
+            explicit = cfg.get("capabilities", {}).get("skills")
+            if explicit is not None:
+                if explicit:
+                    result[name] = cfg
+            elif HAS_CAPABILITIES and supports_skills(name):
+                result[name] = cfg
+        return result
 
 
 class CentralRegistry:
@@ -573,11 +622,15 @@ class CentralRegistry:
             )
 
         for client_name, client_config in clients.items():
+            client_key = client_config.get("key", "")
+            if not client_key:
+                # Client has no MCP JSON config (e.g. windsurf, continue) — skip MCP sync
+                continue
+
             if not HAS_TUI:
                 print(f"Syncing to {client_name}...")
 
             client_path = Path(client_config["path"]).expanduser()
-            client_key = client_config["key"]
 
             # Load existing client config or create new
             if client_path.exists():
@@ -990,44 +1043,51 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Damn Good MCP Server Manager - Centralized Management",
+        description="Damn Good — Centralized AI tooling management",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Management Modes:
-  Central Mode (default):    Manage servers centrally across all clients
-  Client Mode (--client):    Manage a single client's servers
-
 Commands:
-  # Central Management (default)
-  damngood list                    List centrally managed servers
-  damngood add <name>              Add server via JSON editor
-  damngood edit <name>             Edit server via JSON editor
-  damngood remove <name>           Remove from central registry
-  damngood show <name>             Show server details
-  damngood sync                    Sync to all clients
-  damngood import                  Import existing configs
+  # MCP Servers (central mode)
+  damngood list                         List centrally managed servers
+  damngood add <name>                   Add server via JSON editor
+  damngood edit <name>                  Edit server via JSON editor
+  damngood remove <name>                Remove from central registry
+  damngood show <name>                  Show server details
+  damngood sync                         Sync MCP servers to all clients
+  damngood import                       Import existing configs
+
+  # Agent Instructions
+  damngood instructions list            List instruction snippets
+  damngood instructions add <name>      Add a new snippet
+  damngood instructions edit <name>     Edit a snippet
+  damngood instructions remove <name>   Remove a snippet
+  damngood instructions show <name>     Show snippet details
+  damngood instructions sync            Sync snippets to all clients
+
+  # Skills
+  damngood skills list                  List skills
+  damngood skills add <name>            Add a new skill
+  damngood skills edit <name>           Edit a skill
+  damngood skills remove <name>         Remove a skill
+  damngood skills show <name>           Show skill details
+  damngood skills sync                  Sync skills to all clients
 
   # Client Management
-  damngood client list             List registered clients
-  damngood client register <name>  Register new client
-  damngood client remove <name>    Remove registered client
-  damngood client enable <name>    Enable client
-  damngood client disable <name>   Disable client
+  damngood client list                  List registered clients
+  damngood client register <name>       Register new client
+  damngood client remove <name>         Remove registered client
+  damngood client enable <name>         Enable client
+  damngood client disable <name>        Disable client
 
   # Single-Client Mode (use --client)
-  damngood --client cursor list    List Cursor servers only
-  damngood --client cursor add ... Add to Cursor only
+  damngood --client cursor list         List Cursor servers only
 
 Examples:
-  # Add a server to central registry
-  damngood add filesystem
-  # (opens editor, fill JSON, save, close)
-
-  # Sync to all clients
-  damngood sync
-
-  # Or manage single client
-  damngood --client cursor list
+  damngood add filesystem               Add an MCP server (opens editor)
+  damngood sync                         Sync MCP servers to all clients
+  damngood instructions add coding      Add an instruction snippet
+  damngood instructions sync            Push instructions to all clients
+  damngood skills add review-pr         Create a new skill
         """,
     )
     parser.add_argument("--config", "-c", help="Path to config file (legacy)")
@@ -1121,6 +1181,40 @@ Examples:
         help="Config key (default: mcpServers, use 'mcp' for OpenCode-style)",
     )
 
+    # Instructions subcommand
+    instructions_parser = subparsers.add_parser(
+        "instructions", help="Manage agent instruction snippets"
+    )
+    instructions_subparsers = instructions_parser.add_subparsers(
+        dest="instructions_command", help="Instructions commands"
+    )
+    instructions_subparsers.add_parser("list", help="List all snippets")
+    inst_add = instructions_subparsers.add_parser("add", help="Add a new snippet")
+    inst_add.add_argument("name", help="Snippet name")
+    inst_edit = instructions_subparsers.add_parser("edit", help="Edit a snippet")
+    inst_edit.add_argument("name", help="Snippet name")
+    inst_remove = instructions_subparsers.add_parser("remove", help="Remove a snippet")
+    inst_remove.add_argument("name", help="Snippet name")
+    inst_show = instructions_subparsers.add_parser("show", help="Show snippet details")
+    inst_show.add_argument("name", help="Snippet name")
+    instructions_subparsers.add_parser("sync", help="Sync snippets to all clients")
+
+    # Skills subcommand
+    skills_parser = subparsers.add_parser("skills", help="Manage skills")
+    skills_subparsers = skills_parser.add_subparsers(
+        dest="skills_command", help="Skills commands"
+    )
+    skills_subparsers.add_parser("list", help="List all skills")
+    skill_add = skills_subparsers.add_parser("add", help="Add a new skill")
+    skill_add.add_argument("name", help="Skill name")
+    skill_edit = skills_subparsers.add_parser("edit", help="Edit a skill")
+    skill_edit.add_argument("name", help="Skill name")
+    skill_remove = skills_subparsers.add_parser("remove", help="Remove a skill")
+    skill_remove.add_argument("name", help="Skill name")
+    skill_show = skills_subparsers.add_parser("show", help="Show skill details")
+    skill_show.add_argument("name", help="Skill name")
+    skills_subparsers.add_parser("sync", help="Sync skills to all clients")
+
     # Client subcommand
     client_parser = subparsers.add_parser("client", help="Manage clients")
     client_subparsers = client_parser.add_subparsers(
@@ -1169,6 +1263,50 @@ Examples:
         else:
             parser.print_help()
         sys.exit(0)
+
+    # Handle instructions subcommands
+    if args.command == "instructions":
+        from damngood.instructions import InstructionsRegistry
+
+        if not args.instructions_command:
+            instructions_parser.print_help()
+            sys.exit(1)
+
+        if args.instructions_command == "list":
+            InstructionsRegistry.list_snippets()
+        elif args.instructions_command == "add":
+            InstructionsRegistry.add_snippet(args.name)
+        elif args.instructions_command == "edit":
+            InstructionsRegistry.edit_snippet(args.name)
+        elif args.instructions_command == "remove":
+            InstructionsRegistry.remove_snippet(args.name)
+        elif args.instructions_command == "show":
+            InstructionsRegistry.show_snippet(args.name)
+        elif args.instructions_command == "sync":
+            InstructionsRegistry.sync()
+        return
+
+    # Handle skills subcommands
+    if args.command == "skills":
+        from damngood.skills import SkillsRegistry
+
+        if not args.skills_command:
+            skills_parser.print_help()
+            sys.exit(1)
+
+        if args.skills_command == "list":
+            SkillsRegistry.list_skills()
+        elif args.skills_command == "add":
+            SkillsRegistry.add_skill(args.name)
+        elif args.skills_command == "edit":
+            SkillsRegistry.edit_skill(args.name)
+        elif args.skills_command == "remove":
+            SkillsRegistry.remove_skill(args.name)
+        elif args.skills_command == "show":
+            SkillsRegistry.show_skill(args.name)
+        elif args.skills_command == "sync":
+            SkillsRegistry.sync()
+        return
 
     # Handle client subcommands
     if args.command == "client":
