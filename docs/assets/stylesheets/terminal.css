@@ -1,26 +1,53 @@
 :root {
+  --terminal-font: "JetBrains Mono", "Fira Code", "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   --md-default-bg-color: #000000;
   --md-default-fg-color: #f5f5f5;
   --md-default-fg-color--light: #c8c8c8;
   --md-default-fg-color--lighter: #a5a5a5;
-  --md-default-fg-color--lightest: #7b7b7b;
-  --md-code-bg-color: #0a0a0a;
+  --md-default-fg-color--lightest: #5f5f5f;
+  --md-code-bg-color: #000000;
   --md-code-fg-color: #f1f1f1;
   --md-typeset-a-color: #ffffff;
   --md-accent-fg-color: #ffffff;
+  --md-typeset-table-color: #2e2e2e;
 }
 
 [data-md-color-scheme="slate"] {
   --md-default-bg-color: #000000;
+  --md-default-fg-color: #f5f5f5;
   --md-primary-fg-color: #000000;
   --md-primary-bg-color: #ffffff;
   --md-accent-fg-color: #ffffff;
+  --md-footer-bg-color: #000000;
+  --md-footer-bg-color--dark: #000000;
+  --md-footer-fg-color: #d9d9d9;
+  --md-footer-fg-color--light: #ffffff;
+  --md-footer-fg-color--lighter: #a6a6a6;
+}
+
+html,
+body,
+.md-typeset,
+.md-nav,
+.md-header,
+.md-tabs,
+.md-search,
+.md-sidebar,
+.md-footer,
+.md-typeset table,
+.md-typeset code {
+  font-family: var(--terminal-font);
 }
 
 .md-header,
 .md-tabs {
   background: #000000;
   border-bottom: 1px solid #242424;
+}
+
+.md-search__form {
+  border: 1px solid #2b2b2b;
+  border-radius: 4px;
 }
 
 .md-nav,
@@ -35,20 +62,58 @@
 .md-typeset h2,
 .md-typeset h3,
 .md-typeset h4 {
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   font-weight: 600;
+  line-height: 1.25;
 }
 
 .md-typeset h1 {
   text-transform: uppercase;
+  font-size: 2rem;
+  margin-bottom: 0.8rem;
 }
 
 .md-typeset code,
 .md-typeset pre,
 .highlight {
-  border: 1px solid #262626;
+  border: 1px solid #1f1f1f;
   border-radius: 6px;
   box-shadow: none;
+}
+
+.md-typeset pre code {
+  background: #000000;
+  color: #f3f3f3;
+}
+
+.md-typeset code {
+  background: #000000;
+  color: #ffffff;
+}
+
+.highlight,
+.highlight pre,
+.highlight code,
+.md-typeset .codehilite,
+.md-typeset .codehilite pre,
+.md-typeset .codehilite code,
+.md-typeset div[class*="language-"] pre,
+.md-typeset div[class*="language-"] code {
+  background: #000000 !important;
+}
+
+.md-typeset .highlight .linenos,
+.md-typeset .highlighttable .linenos {
+  color: #5f5f5f;
+  background: #000000;
+}
+
+.md-clipboard {
+  color: #d8d8d8;
+}
+
+.md-clipboard:hover {
+  color: #ffffff;
 }
 
 .md-typeset a {
@@ -63,11 +128,31 @@
 
 .md-typeset .admonition,
 .md-typeset details {
-  border: 1px solid #2b2b2b;
-  background: #080808;
+  border: 1px solid #212121;
+  background: #040404;
 }
 
 .md-typeset .admonition-title,
 .md-typeset summary {
-  background: #101010;
+  background: #0a0a0a;
+}
+
+.md-typeset table:not([class]) th,
+.md-typeset table:not([class]) td {
+  border-color: #242424;
+}
+
+.md-typeset table:not([class]) tr:hover {
+  background: #050505;
+}
+
+.md-sidebar--primary .md-nav__title,
+.md-sidebar--secondary .md-nav__title,
+.md-nav__item .md-nav__link--active {
+  color: #ffffff;
+}
+
+.md-typeset blockquote {
+  border-left: 2px solid #404040;
+  color: #cdcdcd;
 }
