@@ -2,6 +2,8 @@
 
 A centralized CLI tool to manage **MCP servers**, **agent instructions**, and **skills** across multiple AI coding assistants.
 
+**Documentation:** https://gouthamk16.github.io/damngood/
+
 ## The Problem
 
 Managing AI tool configuration across different editors is painful:

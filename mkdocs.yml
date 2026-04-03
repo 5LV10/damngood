@@ -1,8 +1,8 @@
 site_name: DamnGood Docs
 site_description: Centralized MCP, instructions, and skills management for AI coding tools.
-site_url: https://5lv10.github.io/damngood/
-repo_url: https://github.com/5LV10/damngood
-repo_name: 5LV10/damngood
+site_url: https://gouthamk16.github.io/damngood/
+repo_url: https://github.com/gouthamk16/damngood
+repo_name: gouthamk16/damngood
 
 theme:
   name: material
