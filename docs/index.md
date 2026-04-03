@@ -34,6 +34,6 @@ Then syncs to supported clients with safe defaults.
 - step-by-step onboarding from install to first sync
 - practical guides for MCP, instructions, skills, and clients
 - full CLI reference and config schemas
-- troubleshooting and GitHub Pages deployment guide
+- troubleshooting guide
 
 If you are migrating from manual setup, start with [Quickstart (10 Minutes)](getting-started/quickstart.md). 

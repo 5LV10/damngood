@@ -63,4 +63,3 @@ nav:
       - Supported Clients: reference/supported-clients.md
   - Operations:
       - Troubleshooting: operations/troubleshooting.md
-      - Deploy with GitHub Pages: operations/deploy-github-pages.md

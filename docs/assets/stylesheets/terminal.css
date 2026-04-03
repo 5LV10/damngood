@@ -1,13 +1,16 @@
 :root {
   --terminal-font: "JetBrains Mono", "Fira Code", "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --terminal-panel-bg: #0d0f10;
+  --terminal-panel-border: #2a2f33;
+  --terminal-inline-bg: #111315;
   --md-default-bg-color: #000000;
   --md-default-fg-color: #f5f5f5;
   --md-default-fg-color--light: #c8c8c8;
   --md-default-fg-color--lighter: #a5a5a5;
   --md-default-fg-color--lightest: #5f5f5f;
-  --md-code-bg-color: #000000;
-  --md-code-bg-color--light: #000000;
-  --md-code-bg-color--lighter: #000000;
+  --md-code-bg-color: var(--terminal-panel-bg);
+  --md-code-bg-color--light: var(--terminal-panel-bg);
+  --md-code-bg-color--lighter: var(--terminal-panel-bg);
   --md-code-fg-color: #f1f1f1;
   --md-code-hl-color: #ffffff;
   --md-code-hl-color--light: rgba(255, 255, 255, 0.08);
@@ -92,13 +95,13 @@ body,
 .md-typeset code,
 .md-typeset pre,
 .highlight {
-  border: 1px solid #1f1f1f;
+  border: 1px solid var(--terminal-panel-border);
   border-radius: 6px;
   box-shadow: none;
 }
 
 .md-typeset pre code {
-  background: #000000;
+  background: var(--terminal-panel-bg);
   color: #f3f3f3;
 }
 
@@ -110,11 +113,11 @@ body,
 .md-typeset .highlighttable td,
 .md-typeset div.highlight,
 .md-typeset div[class*="language-"] {
-  background: #000000 !important;
+  background: var(--terminal-panel-bg) !important;
 }
 
 .md-typeset code {
-  background: #000000;
+  background: var(--terminal-inline-bg);
   color: #ffffff;
 }
 
@@ -128,11 +131,11 @@ body,
 .md-typeset .codehilite code,
 .md-typeset div[class*="language-"] pre,
 .md-typeset div[class*="language-"] code {
-  background: #000000 !important;
+  background: var(--terminal-panel-bg) !important;
 }
 
 .md-typeset .highlight pre {
-  box-shadow: inset 0 0 0 1px #1b1b1b;
+  box-shadow: inset 0 0 0 1px #17191b;
 }
 
 .md-typeset .highlight .hll,
@@ -143,7 +146,7 @@ body,
 .md-typeset .highlight .linenos,
 .md-typeset .highlighttable .linenos {
   color: #5f5f5f;
-  background: #000000;
+  background: var(--terminal-panel-bg);
 }
 
 .md-clipboard {
