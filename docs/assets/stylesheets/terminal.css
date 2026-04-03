@@ -1,0 +1,73 @@
+:root {
+  --md-default-bg-color: #000000;
+  --md-default-fg-color: #f5f5f5;
+  --md-default-fg-color--light: #c8c8c8;
+  --md-default-fg-color--lighter: #a5a5a5;
+  --md-default-fg-color--lightest: #7b7b7b;
+  --md-code-bg-color: #0a0a0a;
+  --md-code-fg-color: #f1f1f1;
+  --md-typeset-a-color: #ffffff;
+  --md-accent-fg-color: #ffffff;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: #000000;
+  --md-primary-fg-color: #000000;
+  --md-primary-bg-color: #ffffff;
+  --md-accent-fg-color: #ffffff;
+}
+
+.md-header,
+.md-tabs {
+  background: #000000;
+  border-bottom: 1px solid #242424;
+}
+
+.md-nav,
+.md-sidebar,
+.md-search__form,
+.md-search__output,
+.md-typeset table:not([class]) {
+  background: #000000;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4 {
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+
+.md-typeset h1 {
+  text-transform: uppercase;
+}
+
+.md-typeset code,
+.md-typeset pre,
+.highlight {
+  border: 1px solid #262626;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.md-typeset a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.md-typeset hr {
+  border-bottom: 1px solid #222;
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border: 1px solid #2b2b2b;
+  background: #080808;
+}
+
+.md-typeset .admonition-title,
+.md-typeset summary {
+  background: #101010;
+}

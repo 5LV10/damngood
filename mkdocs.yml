@@ -1,0 +1,63 @@
+site_name: DamnGood Docs
+site_description: Centralized MCP, instructions, and skills management for AI coding tools.
+site_url: https://5lv10.github.io/damngood/
+repo_url: https://github.com/5LV10/damngood
+repo_name: 5LV10/damngood
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+  palette:
+    - scheme: slate
+      primary: black
+      accent: grey
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+
+plugins:
+  - search
+
+extra_css:
+  - assets/stylesheets/terminal.css
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Install: getting-started/install.md
+      - Quickstart (10 Minutes): getting-started/quickstart.md
+  - Concepts:
+      - How DamnGood Works: concepts/how-it-works.md
+      - Safety Model: concepts/safety-model.md
+  - Guides:
+      - Manage MCP Servers: guides/mcp-servers.md
+      - Manage Instructions: guides/instructions.md
+      - Manage Skills: guides/skills.md
+      - Manage Clients: guides/clients.md
+      - Team Onboarding Playbook: guides/team-onboarding.md
+  - Reference:
+      - CLI Commands: reference/cli-commands.md
+      - Config Files: reference/config-files.md
+      - Supported Clients: reference/supported-clients.md
+  - Operations:
+      - Troubleshooting: operations/troubleshooting.md
+      - Deploy with GitHub Pages: operations/deploy-github-pages.md

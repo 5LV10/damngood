@@ -28,6 +28,13 @@ dependencies = [
     "rich>=13.0.0",
 ]
 
+[project.optional-dependencies]
+docs = [
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.5.0",
+    "pymdown-extensions>=10.0",
+]
+
 [project.scripts]
 damngood = "damngood.mcp_manager:main"
 
